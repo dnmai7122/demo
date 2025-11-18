@@ -1,0 +1,29 @@
+# Web framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Python utilities
+pillow
+opencv-python
+numpy
+python-multipart
+python-dotenv==1.0.0
+requests==2.31.0
+
+# Database / backend
+supabase
+psycopg2-binary
+mcp>=1.0.0
+chromadb
+rank-bm25
+
+# ML / AI
+torch
+torchvision
+mediapipe
+langchain
+langchain-community
+langchain-core
+langchain-google-genai
+google-generativeai
+pydantic>=2.5.0

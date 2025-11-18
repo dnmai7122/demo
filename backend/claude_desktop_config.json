@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "sign-language-db": {
+      "command": "python",
+      "args": [
+        "/Users/trinhtrantran/Documents/Sudo Code/SudoCode2025/database/signlanguage/run_server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "/Users/trinhtrantran/Documents/Sudo Code/SudoCode2025/database/signlanguage",
+        "PATH": "/Users/trinhtrantran/Documents/Sudo Code/SudoCode2025/database/signlanguage/venv/bin:/usr/bin:/bin"
+      }
+    }
+  }
+}
+
