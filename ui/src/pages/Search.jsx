@@ -36,9 +36,9 @@ const FilterIcon = ({ size = 20 }) => (
 );
 
 // ---------------- CONFIG ----------------
-const API_URL = "https://resistively-ecesic-hallie.ngrok-free.dev/predict"; // replace with your backend
+const API_URL = "https://bioclimatological-superinclusively-dedra.ngrok-free.dev/predict"; // replace with your backend
 const SEQUENCE_LEN = 60; // frames
-const CAPTURE_FPS = 10; // capture fps
+const CAPTURE_FPS = 12; // capture fps
 const STRIP_DATAURL_PREFIX = true; // if backend expects raw base64 without data:image/... prefix
 
 // ---------------- COMPONENT ----------------
@@ -141,7 +141,7 @@ const Search = () => {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
     // use JPEG to reduce size
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
 
     setFrames((prev) => {
       const next = [...prev, dataUrl];
@@ -198,7 +198,7 @@ const Search = () => {
     setPrediction(null);
 
     try {
-      const payload = { images: payloadFromDataUrls(imagesArray) };
+      const payload = { data: payloadFromDataUrls(imagesArray) };
       const resp = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -238,11 +238,6 @@ const Search = () => {
       setHistory((h) => [normalized, ...h].slice(0, 6));
 
       // also show transient overlay for a few seconds
-      // optional: you can use WebSpeech API to speak the result
-      // if ('speechSynthesis' in window) {
-      //   const ut = new SpeechSynthesisUtterance(normalized.label);
-      //   window.speechSynthesis.speak(ut);
-      // }
     } catch (err) {
       console.error("Send frames error:", err);
       setPrediction({ label: "Error", confidence: 0 });

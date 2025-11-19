@@ -1,61 +1,48 @@
-import cv2
-import numpy as np
-import mediapipe as mp
 import torch
-from pathlib import Path
+import torch.nn as nn
 
-# LSTM model class placeholder 
-class LSTMModel(torch.nn.Module):
-    def __init__(self, input_size=63, hidden_size=128, output_size=10):  # thay output_size nếu cần
+
+class LSTMClassifier(nn.Module):
+    def __init__(self, input_size=144, hidden_size=128, num_layers=2, num_classes=5):
         super().__init__()
-        self.lstm = torch.nn.LSTM(input_size, hidden_size, batch_first=True)
-        self.fc = torch.nn.Linear(hidden_size, output_size)
+        self.lstm = nn.LSTM(
+            input_size,
+            hidden_size,
+            num_layers,
+            batch_first=True,
+            bidirectional=True,
+            dropout=0.2,
+        )
+        self.layernorm = nn.LayerNorm(hidden_size * 2)
+        self.attn = nn.Linear(hidden_size * 2, 1)
+        self.dropout = nn.Dropout(0.3)
+        self.fc = nn.Linear(hidden_size * 2, num_classes)
 
     def forward(self, x):
-        out, _ = self.lstm(x)
-        out = out[:, -1, :]  
-        out = self.fc(out)
-        return out
+        out, _ = self.lstm(x)                         # (B, T, 2H)
+        out = self.layernorm(out)                    # (B, T, 2H)
+        attn_weights = torch.softmax(self.attn(out), dim=1)  # (B, T, 1)
+        out = (attn_weights * out).sum(dim=1)        # (B, 2H)
+        out = self.dropout(out)
+        return self.fc(out)                          # (B, num_classes)
 
-# Load model + mediapipe 
-MODEL_PATH = Path(__file__).parent.parent / "model/lstm_attn.pth"
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = LSTMModel()
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-model.to(device)
-model.eval()
-
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2)
-mp_drawing = mp.solutions.drawing_utils
-
-# Hàm extract keypoints
-def extract_frame_keypoints(frame):
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = hands.process(frame_rgb)
-    keypoints = []
-
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            for lm in hand_landmarks.landmark:
-                keypoints.extend([lm.x, lm.y, lm.z])
-    # nếu không có hand, trả về vector zeros
-    if len(keypoints) == 0:
-        keypoints = [0] * 63  
-    return keypoints
-
-# predict từ frame numpy
-def predict_from_frame(frame):
-    keypoints = extract_frame_keypoints(frame)
-    # tạo batch 1 và sequence length 1
-    x = torch.tensor(keypoints, dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device)
-    with torch.no_grad():
-        logits = model(x)
-        probs = torch.nn.functional.softmax(logits, dim=1)
-        conf, idx = torch.max(probs, dim=1)
-    # label placeholder, thay bằng nhãn thật
-    label_map = {0: "Gesture1", 1: "Gesture2", 2: "Gesture3", 3:"Gesture4", 4:"Gesture5",
-                 5:"Gesture6", 6:"Gesture7", 7:"Gesture8", 8:"Gesture9", 9:"Gesture10"}
-    label = label_map.get(int(idx.item()), "Unknown")
-    return {"label": label, "confidence": float(conf.item())}
+def load_model(
+    model_path: str,
+    device: str = "cpu",
+    input_size: int = 144,
+    hidden_size: int = 128,
+    num_layers: int = 2,
+    num_classes: int = 5,
+) -> LSTMClassifier:
+    model = LSTMClassifier(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        num_layers=num_layers,
+        num_classes=num_classes,
+    )
+    state_dict = torch.load(model_path, map_location=device)
+    model.load_state_dict(state_dict)  # strict=True (mặc định) để khớp 100%
+    model.to(device)
+    model.eval()
+    return model
